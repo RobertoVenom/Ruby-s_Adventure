@@ -5,41 +5,55 @@ using UnityEngine;
 public class EnemyController : MonoBehaviour
 {
     public float speed;
-    public bool vertical;
-    public float changeTime = 3.0f;
+    public bool horizontal;
+    public float changeTime;
 
-    public ParticleSystem smokeEffect;
+    public gameObject smokeEffect
+    public ParticleSystem fixedEffect;
     
     Rigidbody2D rigidbody2D;
-    float timer;
-    int direction = 1;
-    bool broken = true;
-    
+    float remainingTimeToChange;
+    Vector2 direction =Vector2.right;
+    bool repaired = false;
+
+    //Animation
     Animator animator;
-    
+
+    //Sound
+    AudioSource audioSource;
+
     // Start is called before the first frame update
     void Start()
     {
         rigidbody2D = GetComponent<Rigidbody2D>();
-        timer = changeTime;
+        remainingTimeToChange = timeToChange;
+
+        direction = horizontal ? Vector2.right : Vector2.down;
+
         animator = GetComponent<Animator>();
+        
+        audioSource = GetComponent<AudioSource>();
+        //this line of code finds the RubyController script by looking for a "RubyController" tag on Ruby
     }
 
     void Update()
     {
         //remember ! inverse the test, so if broken is true !broken will be false and return won’t be executed.
-        if(!broken)
+        if(!repaired)
         {
             return;
         }
         
-        timer -= Time.deltaTime;
+        remainingTimeToChange -= Time.deltaTime;
 
-        if (timer < 0)
+        if (remainingTimeToChange <= 0)
         {
-            direction = -direction;
-            timer = changeTime;
+            remainingTimeToChange += timeToChange;
+            direction *= -1;
         }
+
+        animator.SetFloat("ForwardX", direction.x);
+        animator.SetFloat("ForwardY", direction.y);
     }
     
     void FixedUpdate()
@@ -70,7 +84,10 @@ public class EnemyController : MonoBehaviour
     
     void OnCollisionEnter2D(Collision2D other)
     {
-        RubyController player = other.gameObject.GetComponent<RubyController >();
+        if(repaired)
+            return;
+
+        RubyController player = other.collider.GetComponent<RubyController >();
 
         if (player != null)
         {
@@ -81,11 +98,18 @@ public class EnemyController : MonoBehaviour
     //Public because we want to call it from elsewhere like the projectile script
     public void Fix()
     {
-        broken = false;
-        rigidbody2D.simulated = false;
-        //optional if you added the fixed animation
         animator.SetTrigger("Fixed");
-        
-        smokeEffect.Stop();
+		repaired = true;
+		
+		smokeParticleEffect.SetActive(false);
+
+		Instantiate(fixedParticleEffect, transform.position + Vector3.up * 0.5f, Quaternion.identity);
+
+		//we don't want that enemy to react to the player or bullet anymore, remove its reigidbody from the simulation
+		rigidbody2d.simulated = false;
+		
+		audioSource.Stop();
+		audioSource.PlayOneShot(hitSound);
+		audioSource.PlayOneShot(fixedSound);
     }
 }

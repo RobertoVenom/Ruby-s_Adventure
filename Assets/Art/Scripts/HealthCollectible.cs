@@ -2,10 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class HealthCollectible : MonoBehaviour
 {
     public AudioClip collectedClip;
@@ -19,6 +15,7 @@ public class HealthCollectible : MonoBehaviour
             if (controller.health < controller.maxHealth)
             {
                 controller.ChangeHealth(1);
+                //this line of code is increasing Ruby's health by 1!
                 Destroy(gameObject);
             
                 controller.PlaySound(collectedClip);
