@@ -1,104 +1,82 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
-public class EnemyController : MonoBehaviour
+/// <summary>
+/// This class handle Enemy behaviour. It make them walk back & forth as long as they aren't fixed, and then just idle
+/// without being able to interact with the player anymore once fixed.
+/// </summary>
+public class Enemy : MonoBehaviour
 {
-    public float speed;
-    public bool horizontal;
-    public float changeTime;
+	// ====== ENEMY MOVEMENT ========
+	public float speed;
+	public float timeToChange;
+	public bool horizontal;
 
-    public gameObject smokeEffect
-    public ParticleSystem fixedEffect;
-    
-    Rigidbody2D rigidbody2D;
-    float remainingTimeToChange;
-    Vector2 direction =Vector2.right;
-    bool repaired = false;
+	public GameObject smokeParticleEffect;
+	public ParticleSystem fixedParticleEffect;
 
-    //Animation
-    Animator animator;
+	public AudioClip hitSound;
+	public AudioClip fixedSound;
+	
+	Rigidbody2D rigidbody2d;
+	float remainingTimeToChange;
+	Vector2 direction = Vector2.right;
+	bool repaired = false;
+	
+	// ===== ANIMATION ========
+	Animator animator;
+	
+	// ================= SOUNDS =======================
+	AudioSource audioSource;
+	
+	void Start ()
+	{
+		rigidbody2d = GetComponent<Rigidbody2D>();
+		remainingTimeToChange = timeToChange;
 
-    //Sound
-    AudioSource audioSource;
+		direction = horizontal ? Vector2.right : Vector2.down;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        rigidbody2D = GetComponent<Rigidbody2D>();
-        remainingTimeToChange = timeToChange;
+		animator = GetComponent<Animator>();
 
-        direction = horizontal ? Vector2.right : Vector2.down;
+		audioSource = GetComponent<AudioSource>();
+	}
+	
+	void Update()
+	{
+		if(repaired)
+			return;
+		
+		remainingTimeToChange -= Time.deltaTime;
 
-        animator = GetComponent<Animator>();
-        
-        audioSource = GetComponent<AudioSource>();
-        //this line of code finds the RubyController script by looking for a "RubyController" tag on Ruby
-    }
+		if (remainingTimeToChange <= 0)
+		{
+			remainingTimeToChange += timeToChange;
+			direction *= -1;
+		}
 
-    void Update()
-    {
-        //remember ! inverse the test, so if broken is true !broken will be false and return won’t be executed.
-        if(!repaired)
-        {
-            return;
-        }
-        
-        remainingTimeToChange -= Time.deltaTime;
+		animator.SetFloat("ForwardX", direction.x);
+		animator.SetFloat("ForwardY", direction.y);
+	}
 
-        if (remainingTimeToChange <= 0)
-        {
-            remainingTimeToChange += timeToChange;
-            direction *= -1;
-        }
+	void FixedUpdate()
+	{
+		rigidbody2d.MovePosition(rigidbody2d.position + direction * speed * Time.deltaTime);
+	}
 
-        animator.SetFloat("ForwardX", direction.x);
-        animator.SetFloat("ForwardY", direction.y);
-    }
-    
-    void FixedUpdate()
-    {
-        //remember ! inverse the test, so if broken is true !broken will be false and return won’t be executed.
-        if(!broken)
-        {
-            return;
-        }
-        
-        Vector2 position = rigidbody2D.position;
-        
-        if (vertical)
-        {
-            position.y = position.y + Time.deltaTime * speed * direction;
-            animator.SetFloat("Move X", 0);
-            animator.SetFloat("Move Y", direction);
-        }
-        else
-        {
-            position.x = position.x + Time.deltaTime * speed * direction;
-            animator.SetFloat("Move X", direction);
-            animator.SetFloat("Move Y", 0);
-        }
-        
-        rigidbody2D.MovePosition(position);
-    }
-    
-    void OnCollisionEnter2D(Collision2D other)
-    {
-        if(repaired)
-            return;
+	void OnCollisionStay2D(Collision2D other)
+	{
+		if(repaired)
+			return;
+		
+		RubyController controller = other.collider.GetComponent<RubyController>();
+		
+		if(controller != null)
+			controller.ChangeHealth(-1);
+	}
 
-        RubyController player = other.collider.GetComponent<RubyController >();
-
-        if (player != null)
-        {
-            player.ChangeHealth(-1);
-        }
-    }
-    
-    //Public because we want to call it from elsewhere like the projectile script
-    public void Fix()
-    {
-        animator.SetTrigger("Fixed");
+	public void Fix()
+	{
+		animator.SetTrigger("Fixed");
 		repaired = true;
 		
 		smokeParticleEffect.SetActive(false);
@@ -111,5 +89,5 @@ public class EnemyController : MonoBehaviour
 		audioSource.Stop();
 		audioSource.PlayOneShot(hitSound);
 		audioSource.PlayOneShot(fixedSound);
-    }
+	}
 }
