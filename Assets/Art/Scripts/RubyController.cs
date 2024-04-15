@@ -7,7 +7,8 @@ using UnityEngine.SceneManagement;
 public class RubyController : MonoBehaviour
 {
     AudioSource audioSource;
-    public AudioClip takeDmg;
+    public AudioClip throwSound;
+    public AudioClip hitSound;
 
     public int score = 0;
     public GameObject scoreText;
@@ -15,17 +16,18 @@ public class RubyController : MonoBehaviour
     public int maxHealth = 5;
     public int health { get { return currentHealth; }}
     int currentHealth;
-    
     public GameObject healthIncreaseEffect;
     public GameObject healthDecreaseEffect;
     public GameObject projectilePrefab;
-    public float speed = 4.0f;
-    public float timeInvincible = 2.0f;
+    public float speed = 3.0f;
+    
     public float force = 300.0f;
 
     bool gameOver;
+    bool gameWon;
 
     public GameObject gameOverText;
+    public GameObject gameWonText;
     
     Rigidbody2D rigidbody2d;
     float horizontal;
@@ -33,7 +35,9 @@ public class RubyController : MonoBehaviour
 
     TextMeshProUGUI scoreText_text;
     TextMeshProUGUI gameOverText_text;
-
+    TextMeshProUGUI gameWonText_text;
+    
+    public float timeInvincible = 2.0f;
     bool isInvincible;
     float isInvincibleTimer;
     
@@ -49,7 +53,9 @@ public class RubyController : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
         scoreText_text = scoreText.GetComponent<TextMeshProUGUI>();
         gameOverText_text = gameOverText.GetComponent<TextMeshProUGUI>();
+        gameWonText_text = gameWonText.GetComponent<TextMeshProUGUI>();
         gameOver = false;
+        gameWon = false;
     }
 
     // Update is called once per frame
@@ -82,9 +88,9 @@ public class RubyController : MonoBehaviour
 
         if (score > 1)
         {
-            gameOver = true;
-            gameOverText.SetActive(true);
-            gameOverText_text = "YOU WON! Press R to Restart!";
+            gameWon = true;
+            gameWonText.SetActive(true);
+            gameWonText_text = "YOU WON! Press R to Restart!";
         }
         
         if (isInvincible)
@@ -138,7 +144,7 @@ public class RubyController : MonoBehaviour
             GameObject healthDecreaseEffect = Instantiate(healthDecreaseEffect, rigidbody2d.position + Vector2.up * 0f, Quaternion.identity);
             if (isInvincible)
                 return;
-            audioSource.PlayOneShot(takeDmg);
+            audioSource.PlayOneShot(hitSound);
             
             isInvincible = true;
             invincibleTimer = timeInvincible;
@@ -166,7 +172,7 @@ public class RubyController : MonoBehaviour
 
         animator.SetTrigger("Launch");
         
-        PlaySound("Throw Cog");
+        PlaySound(throwSound);
     } 
     
     public void PlaySound(AudioClip clip)
