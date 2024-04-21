@@ -1,69 +1,89 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿﻿using System;
 using UnityEngine;
-using TMPro;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
 public class RubyController : MonoBehaviour
 {
-    AudioSource audioSource;
-    public AudioClip throwSound;
-    public AudioClip hitSound;
-
-    public int score = 0;
-    public GameObject scoreText;
-
-    public int maxHealth = 5;
-    public int health { get { return currentHealth; }}
-    int currentHealth;
-    public GameObject healthIncreaseEffect;
-    public GameObject healthDecreaseEffect;
-    public GameObject projectilePrefab;
-    public float speed = 3.0f;
+    // ========= MOVEMENT =================
+    public float speed = 4;
     
-    public float force = 300.0f;
-
-    bool gameOver;
-    bool gameWon;
-
-    public GameObject gameOverText;
-    public GameObject gameWonText;
-    
-    Rigidbody2D rigidbody2d;
-    float horizontal;
-    float vertical;
-
-    TextMeshProUGUI scoreText_text;
-    TextMeshProUGUI gameOverText_text;
-    TextMeshProUGUI gameWonText_text;
-    
+    // ======== HEALTH ==========
+    public int maxHealth = 15;
     public float timeInvincible = 2.0f;
+    public ParticleSystem hitParticle;
+    public ParticleSystem damageParticle;
+    public ParticleSystem healthParticle;
+    
+    // ======== PROJECTILE ==========
+    public GameObject projectilePrefab;
+
+    // ======== AUDIO ==========
+    public AudioClip hitSound;
+    public AudioClip shootingSound;
+    
+    // ======== HEALTH ==========
+    public int health
+    {
+        get { return currentHealth; }
+    }
+    
+    // =========== MOVEMENT ==============
+    Rigidbody2D rigidbody2d;
+    Vector2 currentInput;
+    
+    // ======== HEALTH ==========
+    int currentHealth;
+    float invincibleTimer;
     bool isInvincible;
-    float isInvincibleTimer;
-    
+   
+    // ==== ANIMATION =====
     Animator animator;
-    Vector2 lookDirection = new Vector2(1,0);
+    Vector2 lookDirection = new Vector2(1, 0);
     
-    // Start is called before the first frame update
+    // ================= SOUNDS =======================
+    AudioSource audioSource;
+
+    // ================= UI =================
+    public GameObject gameOverText;
+    public GameObject youWinText;
+    bool gameOver = false;
+
+    // ========= Score =========
+    public int score = 0;
+    // public Text scoreText;
+    // public GameObject ScoreText; 
+
     void Start()
     {
-        animator = GetComponent<Animator>();
-        rigidbody2d = GetComponent<Rigidbody2D>();      
+        // =========== MOVEMENT ==============
+        rigidbody2d = GetComponent<Rigidbody2D>();
+                
+        // ======== HEALTH ==========
+        invincibleTimer = -1.0f;
         currentHealth = maxHealth;
+        
+        // ==== ANIMATION =====
+        animator = GetComponent<Animator>();
+        
+        // ==== AUDIO =====
         audioSource = GetComponent<AudioSource>();
-        scoreText_text = scoreText.GetComponent<TextMeshProUGUI>();
-        gameOverText_text = gameOverText.GetComponent<TextMeshProUGUI>();
-        gameWonText_text = gameWonText.GetComponent<TextMeshProUGUI>();
-        gameOver = false;
-        gameWon = false;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        horizontal = Input.GetAxis("Horizontal");
-        vertical = Input.GetAxis("Vertical");
-        
+        // ================= HEALTH ====================
+        if (isInvincible)
+        {
+            invincibleTimer -= Time.deltaTime;
+            if (invincibleTimer < 0)
+                isInvincible = false;
+        }
+
+        // ============== MOVEMENT ======================
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+                
         Vector2 move = new Vector2(horizontal, vertical);
         
         if(!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
@@ -71,112 +91,129 @@ public class RubyController : MonoBehaviour
             lookDirection.Set(move.x, move.y);
             lookDirection.Normalize();
         }
-        
+
+        currentInput = move;
+        if (Input.GetKeyDown(KeyCode.R))
+                {
+                    if (gameOver == true)
+                    {
+                        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                        print("World reset!");
+                    }
+                }
+
+
+        // ============== ANIMATION =======================
+
         animator.SetFloat("Look X", lookDirection.x);
         animator.SetFloat("Look Y", lookDirection.y);
         animator.SetFloat("Speed", move.magnitude);
-        
-        scoreText_text = "Fixed Robots: " + score.ToString();
 
-        if(currentHealth < 1)
-        {
-            gameOver = true;
-            gameOverText.SetActive(true);
-            gameOverText_text.text = "GAME OVER: YOU LOST! Press R to Restart!";
-            speed = 0.0000001f;
-        }
+        // ============== PROJECTILE ======================
 
-        if (score > 1)
-        {
-            gameWon = true;
-            gameWonText.SetActive(true);
-            gameWonText_text = "YOU WON! Press R to Restart!";
-        }
+        if (Input.GetKeyDown(KeyCode.C))
+            LaunchProjectile();
         
-        if (isInvincible)
-        {
-            invincibleTimer -= Time.deltaTime;
-            if (invincibleTimer < 0)
-                isInvincible = false;
-        }
-        
-        if(Input.GetKeyDown(KeyCode.C))
-        {
-            Launch();
-        }
-        
+        // ======== DIALOGUE ==========
         if (Input.GetKeyDown(KeyCode.X))
         {
-            RaycastHit2D hit = Physics2D.Raycast(rigidbody2d.position + Vector2.up * 0.2f, lookDirection, 1.5f, LayerMask.GetMask("NPC"));
+            RaycastHit2D hit = Physics2D.Raycast(rigidbody2d.position + Vector2.up * 0.2f, lookDirection, 1.5f, 1 << LayerMask.NameToLayer("NPC"));
             if (hit.collider != null)
             {
                 NonPlayerCharacter character = hit.collider.GetComponent<NonPlayerCharacter>();
                 if (character != null)
                 {
                     character.DisplayDialog();
-                }
+                }  
             }
         }
-
-        if (Input.GetKey(KeyCode.R))
-        {
-            if (gameOver == true)
-            {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); // this loads the currently active scene
-            }
-        }
+ 
     }
-    
+
     void FixedUpdate()
     {
         Vector2 position = rigidbody2d.position;
-        position.x = position.x + speed * horizontal * Time.deltaTime;
-        position.y = position.y + speed * vertical * Time.deltaTime;
-
+        
+        position = position + currentInput * speed * Time.deltaTime;
+        
         rigidbody2d.MovePosition(position);
     }
 
+    // ===================== HEALTH ==================
     public void ChangeHealth(int amount)
     {
         if (amount < 0)
-        {
-            animator.SetTrigger("Hit");
-            GameObject healthDecreaseEffect = Instantiate(healthDecreaseEffect, rigidbody2d.position + Vector2.up * 0f, Quaternion.identity);
+        { 
             if (isInvincible)
                 return;
-            audioSource.PlayOneShot(hitSound);
             
             isInvincible = true;
             invincibleTimer = timeInvincible;
+            
+            animator.SetTrigger("Hit");
+            audioSource.PlayOneShot(hitSound);
+
+            Instantiate(hitParticle, transform.position + Vector3.up * 0.5f, Quaternion.identity);
+            Instantiate(damageParticle, transform.position + Vector3.up * 0.5f, Quaternion.identity);
         }
-        
         if (amount > 0)
         {
-            GameObject healthIncreaseEffect = Instantiate(healthIncreaseEffect, rigidbody2d.position + Vector2.up * 0.5f, Quaternion.identity);
+            Instantiate(healthParticle, transform.position + Vector3.up * 0.5f, Quaternion.identity);
         }
         currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
+        
+        if(currentHealth == 0)
+          {
+            gameOver = true;
+
+            speed = 0.0f;
+            print("Game Over!");
+
+            gameOverText.SetActive(true);
+          }
         UIHealthBar.Instance.SetValue(currentHealth / (float)maxHealth);
     }
-
-    public void ChangeScore(int scoreAmount)
-    {
-        score = score + scoreAmount;
-    }
     
-    void Launch()
+    
+    // =============== PROJECTICLE ========================
+    void LaunchProjectile()
     {
         GameObject projectileObject = Instantiate(projectilePrefab, rigidbody2d.position + Vector2.up * 0.5f, Quaternion.identity);
 
         Projectile projectile = projectileObject.GetComponent<Projectile>();
         projectile.Launch(lookDirection, 300);
-
-        animator.SetTrigger("Launch");
         
-        PlaySound(throwSound);
-    } 
+        animator.SetTrigger("Launch");
+        audioSource.PlayOneShot(shootingSound);
+    }
     
+    // =============== SOUND ==========================
+
+    //Allow to play a sound on the player sound source. used by Collectible
     public void PlaySound(AudioClip clip)
     {
         audioSource.PlayOneShot(clip);
+    }
+
+    // ==================== Score ====================
+    public void ChangeScore (int scoreAmount)
+    {
+         if (scoreAmount > 0)
+        {
+            score = score + scoreAmount;
+            print ("Fixed Robots: " + score);
+        }
+        
+       // scoreText.text = "Fixed Robots: " + score.ToString(); // This is the code that breaks the game
+       
+        if (score == 4)
+        {
+            youWinText.SetActive(true);
+
+            gameOver = true;
+
+            speed = 0.0f;
+            print("Game Over!");
+        }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 /// <summary>
@@ -29,6 +29,9 @@ public class Enemy : MonoBehaviour
 	// ================= SOUNDS =======================
 	AudioSource audioSource;
 	
+	// ================= Score =================
+	private RubyController rubyController;
+
 	void Start ()
 	{
 		rigidbody2d = GetComponent<Rigidbody2D>();
@@ -39,6 +42,26 @@ public class Enemy : MonoBehaviour
 		animator = GetComponent<Animator>();
 
 		audioSource = GetComponent<AudioSource>();
+
+		GameObject rubyControllerObject = GameObject.FindWithTag("RubyController"); //this line of code finds the RubyController script by looking for a "RubyController" tag on Ruby
+
+        if (rubyControllerObject != null)
+
+        {
+
+            rubyController = rubyControllerObject.GetComponent<RubyController>(); //and this line of code finds the rubyController and then stores it in a variable
+
+            print ("Found the RubyConroller Script!");
+
+        }
+
+        if (rubyController == null)
+
+        {
+
+            print ("Cannot find GameController Script!");
+
+        }
 	}
 	
 	void Update()
@@ -89,5 +112,12 @@ public class Enemy : MonoBehaviour
 		audioSource.Stop();
 		audioSource.PlayOneShot(hitSound);
 		audioSource.PlayOneShot(fixedSound);
+
+		if (rubyController != null)
+			{
+				rubyController.ChangeScore(1);
+			}
 	}
+
+	
 }

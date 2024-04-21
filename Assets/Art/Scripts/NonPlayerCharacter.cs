@@ -7,13 +7,13 @@ public class NonPlayerCharacter : MonoBehaviour
     public float displayTime = 4.0f;
     public GameObject dialogBox;
     float timerDisplay;
-    
+
     void Start()
     {
         dialogBox.SetActive(false);
         timerDisplay = -1.0f;
     }
-    
+
     void Update()
     {
         if (timerDisplay >= 0)

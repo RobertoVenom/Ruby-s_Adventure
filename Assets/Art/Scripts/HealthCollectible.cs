@@ -14,8 +14,8 @@ public class HealthCollectible : MonoBehaviour
         {
             if (controller.health < controller.maxHealth)
             {
-                controller.ChangeHealth(1);
-                //this line of code is increasing Ruby's health by 1!
+                controller.ChangeHealth(5);
+                //this line of code is increasing Ruby's health by 5!
                 Destroy(gameObject);
             
                 controller.PlaySound(collectedClip);
